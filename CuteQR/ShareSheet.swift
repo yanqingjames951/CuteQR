@@ -1,27 +1,19 @@
 import SwiftUI
+import UIKit
 
 struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    let excludedActivityTypes: [UIActivity.ActivityType]?
-    let callback: UIActivityViewController.CompletionWithItemsHandler?
-    
-    init(
-        items: [Any],
-        excludedActivityTypes: [UIActivity.ActivityType]? = nil,
-        callback: UIActivityViewController.CompletionWithItemsHandler? = nil
-    ) {
-        self.items = items
-        self.excludedActivityTypes = excludedActivityTypes
-        self.callback = callback
-    }
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+    let excludedActivityTypes: [UIActivity.ActivityType]? = nil
+    let completion: UIActivityViewController.CompletionWithItemsHandler? = nil
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(
-            activityItems: items,
-            applicationActivities: nil
+            activityItems: activityItems,
+            applicationActivities: applicationActivities
         )
         controller.excludedActivityTypes = excludedActivityTypes
-        controller.completionWithItemsHandler = callback
+        controller.completionWithItemsHandler = completion
         return controller
     }
     

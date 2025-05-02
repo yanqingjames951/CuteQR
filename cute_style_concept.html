@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CuteQR Style Concept</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f0f4f8; /* Light background */
+            padding: 20px;
+            color: #555; /* Softer text color */
+        }
+
+        .settings-section {
+            background-color: #ffffff;
+            border-radius: 15px; /* Rounded corners */
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .section-header {
+            background-color: #ffebf0; /* Pastel pink header */
+            color: #d6336c; /* Darker pink for contrast */
+            padding: 10px 15px;
+            font-weight: 600;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+        }
+         .section-header .icon {
+             margin-right: 8px;
+             font-size: 1.1em; /* Slightly larger icons */
+         }
+
+
+        .setting-item {
+            padding: 15px;
+            border-bottom: 1px solid #eef2f7;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+         .setting-item:last-child {
+             border-bottom: none;
+         }
+
+        .setting-label {
+            display: flex;
+            align-items: center;
+        }
+        .setting-label .icon {
+             margin-right: 12px;
+             color: #a1c4fd; /* Pastel blue icon */
+             font-size: 1.2em;
+         }
+
+
+        .toggle-switch {
+            /* Basic switch styling */
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        .toggle-switch input { display: none; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #f7a8b8; /* Pastel pink accent */
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        button.cute-button {
+             background-color: #f7a8b8; /* Pastel pink */
+             color: white;
+             border: none;
+             padding: 10px 20px;
+             border-radius: 20px; /* Very rounded */
+             font-weight: 600;
+             cursor: pointer;
+             transition: background-color 0.3s ease;
+             margin-top: 10px;
+        }
+        button.cute-button:hover {
+            background-color: #f093a3; /* Slightly darker pink */
+        }
+
+        .cute-slider {
+             width: 100%;
+             cursor: pointer;
+             accent-color: #f7a8b8; /* Pastel pink slider track */
+        }
+
+        /* Added styles for mockups */
+        .tab-bar {
+            display: flex;
+            justify-content: space-around;
+            background-color: #fff;
+            padding: 10px 0;
+            border-radius: 20px;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.75em;
+            color: #aaa;
+        }
+        .tab-item .icon {
+             font-size: 1.5em;
+             margin-bottom: 3px;
+        }
+        .tab-item.active {
+            color: #f7a8b8; /* Pastel pink for active tab */
+        }
+
+        .screen-mockup {
+            padding-bottom: 10px;
+        }
+
+        .cute-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        .cute-input:focus {
+            outline: none;
+            border-color: #f7a8b8;
+            box-shadow: 0 0 5px rgba(247, 168, 184, 0.5);
+        }
+
+        .qr-code-placeholder, .camera-placeholder {
+            min-height: 150px;
+            background-color: #eef2f7;
+            border-radius: 10px;
+            margin: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            font-style: italic;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+        }
+
+        button.secondary {
+             background-color: #a1c4fd; /* Pastel blue */
+        }
+         button.secondary:hover {
+             background-color: #8cb3ef;
+        }
+
+        .history-item {
+            justify-content: space-between;
+        }
+        .history-date {
+            font-size: 0.8em;
+            color: #aaa;
+        }
+
+        .customization-section {
+            margin-top: 20px;
+            border-top: 1px dashed #ddd;
+            padding-top: 15px;
+        }
+
+        .style-options label, .color-options label {
+            margin-right: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .style-options button, .color-options input[type='color'], .upload-button {
+            padding: 8px 12px;
+            margin-right: 5px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .style-options button.active {
+            background-color: #f7a8b8;
+            color: white;
+            border-color: #f7a8b8;
+        }
+
+        .color-options input[type='color'] {
+            width: 40px;
+            height: 30px;
+            padding: 0;
+            vertical-align: middle;
+            border: 1px solid #ccc;
+        }
+
+        .cute-select {
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            background-color: white;
+            font-size: 0.9em;
+            min-width: 150px;
+            margin-bottom: 10px;
+        }
+
+        /* Search Bar */
+        .search-bar {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            box-sizing: border-box;
+        }
+        .search-bar:focus {
+             outline: none;
+            border-color: #f7a8b8;
+            box-shadow: 0 0 5px rgba(247, 168, 184, 0.5);
+        }
+
+        /* Filters */
+        .filter-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .filter-item label {
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .filter-item input[type="checkbox"] {
+            accent-color: #f7a8b8;
+        }
+
+        /* History Item Edit */
+        .edit-button {
+            background: none;
+            border: none;
+            color: #a1c4fd; /* Pastel blue */
+            cursor: pointer;
+            font-size: 0.9em;
+            padding: 0 5px;
+        }
+
+        /* Settings Sections Structure */
+        .settings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Add spacing between sections */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>CuteQR Style Concept</h1>
+
+    <!-- Tab Bar Concept (Visual Only) -->
+    <div class="tab-bar">
+        <div class="tab-item active"><span class="icon">✏️</span> Generate</div>
+        <div class="tab-item"><span class="icon">📷</span> Scan</div>
+        <div class="tab-item"><span class="icon">📜</span> History</div>
+        <div class="tab-item"><span class="icon">⚙️</span> Settings</div>
+    </div>
+
+    <h2>Generate Tab</h2>
+    <div class="settings-section screen-mockup">
+        <div class="section-header">
+            <span class="icon">✏️</span> Generate QR Code
+        </div>
+        <div class="setting-item">
+             <label for="qr-type">Type:</label>
+             <select id="qr-type" class="cute-select">
+                 <option>URL</option>
+                 <option>Text</option>
+                 <option>Contact (vCard)</option>
+                 <option>Wi-Fi</option>
+                 <option>Location</option>
+             </select>
+        </div>
+        <div class="setting-item">
+              <input type="text" placeholder="Enter text or URL" class="cute-input">
+        </div>
+        <div class="qr-code-placeholder">
+            [QR Code Display Area]
+        </div>
+        <div class="setting-item button-container">
+             <button class="cute-button">Generate</button>
+             <button class="cute-button secondary">Customize</button>
+        </div>
+        
+        <!-- Customization Options -->
+        <div class="customization-section">
+             <div class="setting-item style-options">
+                 <label>Style:</label>
+                 <button class="active">Square</button>
+                 <button>Dot</button>
+                 <button>Rounded</button>
+             </div>
+             <div class="setting-item color-options">
+                 <label>QR Color:</label>
+                 <input type="color" value="#000000">
+                 <label>Background:</label>
+                 <input type="color" value="#FFFFFF">
+             </div>
+              <div class="setting-item">
+                 <button class="upload-button"><span class="icon">🖼️</span> Add Logo</button>
+             </div>
+        </div>
+    </div>
+
+    <h2>Scan Tab</h2>
+    <div class="settings-section screen-mockup">
+        <div class="section-header">
+            <span class="icon">📷</span> Scan QR Code
+        </div>
+        <div class="camera-placeholder">
+             [Camera View Area]
+        </div>
+        <div class="setting-item button-container">
+             <button class="cute-button">Scan from Photo</button>
+        </div>
+    </div>
+
+    <h2>History Tab</h2>
+     <div class="settings-section screen-mockup">
+         <div class="section-header">
+             <span class="icon">📜</span> Scan History
+         </div>
+         <input type="text" placeholder="Search History..." class="search-bar">
+         <div class="filter-container">
+             <div class="filter-item">
+                 <label for="history-type">Filter by Type:</label>
+                 <select id="history-type" class="cute-select">
+                     <option>All</option>
+                     <option>URL</option>
+                     <option>Text</option>
+                     <option>Contact</option>
+                     <option>Wi-Fi</option>
+                     <option>Location</option>
+                 </select>
+             </div>
+             <div class="filter-item">
+                 <input type="checkbox" id="show-favorites">
+                 <label for="show-favorites">Favorites Only</label>
+             </div>
+         </div>
+         <div class="setting-item history-item">
+             <span class="setting-label"><span class="icon">🔗</span> https://apple.com</span>
+             <span class="history-date">May 1, 2025</span>
+             <button class="edit-button">Edit</button>
+         </div>
+          <div class="setting-item history-item">
+             <span class="setting-label"><span class="icon">👤</span> John Doe Contact</span>
+             <span class="history-date">Apr 30, 2025</span>
+             <button class="edit-button">Edit</button>
+         </div>
+          <div class="setting-item history-item">
+             <span class="setting-label"><span class="icon">📄</span> Hello World!</span>
+             <span class="history-date">Apr 29, 2025</span>
+             <button class="edit-button">Edit</button>
+         </div>
+         <div class="setting-item button-container">
+              <button class="cute-button">Clear All</button>
+         </div>
+     </div>
+
+    <h2>Settings Tab</h2>
+
+    <div class="settings-section">
+        <div class="settings-list">
+            <div class="settings-section">
+                <div class="section-header">
+                    <span class="icon">🖌️</span> Appearance
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Theme Mode</span>
+                    <select class="cute-select">
+                        <option>System</option>
+                        <option>Light</option>
+                        <option>Dark</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                   <span class="setting-label">Accent Color</span>
+                   <input type="color" value="#f7a8b8">
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <div class="section-header">
+                    <span class="icon">✏️</span> QR Code Generation
+                </div>
+                 <div class="setting-item">
+                     <span class="setting-label">Default Style</span>
+                     <select class="cute-select">
+                        <option>Square</option>
+                        <option>Dot</option>
+                        <option>Rounded</option>
+                    </select>
+                 </div>
+                  <div class="setting-item">
+                      <span class="setting-label">Default Error Correction</span>
+                      <select class="cute-select">
+                        <option>Medium (M)</option>
+                        <option>Low (L)</option>
+                        <option>Quartile (Q)</option>
+                        <option>High (H)</option>
+                    </select>
+                 </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="section-header">
+                    <span class="icon">📜</span> History
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Max History Items</span>
+                    <input type="range" min="10" max="500" value="100" step="10">
+                    <span>100</span>
+                </div>
+                <div class="setting-item">
+                   <button class="cute-button">Clear History</button>
+                </div>
+                <div class="setting-item">
+                   <label for="icloud-sync">iCloud Sync</label>
+                   <input type="checkbox" id="icloud-sync">
+               </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="section-header">
+                    <span class="icon">ℹ️</span> About
+                </div>
+                <div class="setting-item">
+                   <span class="setting-label">App Version</span>
+                   <span>1.0.0</span>
+                </div>
+                <div class="setting-item">
+                    <button class="cute-button secondary">Privacy Policy</button>
+                    <button class="cute-button secondary">Rate App</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 
+/// Created ImagePicker using PHPickerViewController for selecting logo images with proper iOS 14+ photo picker API.
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     @Binding var isPresented: Bool
@@ -34,9 +35,9 @@ struct ImagePicker: UIViewControllerRepresentable {
             guard let provider = results.first?.itemProvider else { return }
             
             if provider.canLoadObject(ofClass: UIImage.self) {
-                provider.loadObject(ofClass: UIImage.self) { image, _ in
-                    if let image = image as? UIImage {
-                        DispatchQueue.main.async {
+                provider.loadObject(ofClass: UIImage.self) { image, error in
+                    DispatchQueue.main.async {
+                        if let image = image as? UIImage {
                             self.parent.image = image
                         }
                     }

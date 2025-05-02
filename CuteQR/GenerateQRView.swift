@@ -1,28 +1,30 @@
 import SwiftUI
 import CoreImage.CIFilterBuiltins
 import Photos
-import UIKit
 
-struct GenerateQRView: View {
-    @State private var inputText = ""
-    @State private var generatedQRCode: UIImage? = nil
-    @State private var showingImagePicker = false
-    @State private var selectedLogo: UIImage? = nil
-    @State private var qrCodeColor = Color.black
-    @State private var backgroundColor = Color.white
-    @State private var showError = false
-    @State private var errorMessage = ""
-    @State private var logoSize: CGFloat = 0.2
-    @State private var logoCornerRadius: CGFloat = 0.0
-    @State private var qrCodeStyle = QRCodeStyle.square
-    @State private var showingSavedAlert = false
-    @State private var selectedType: QRCodeDataType = .text
-    @State private var showingHistory = false
-    @State private var showingShareSheet = false
-    @EnvironmentObject private var historyManager: QRCodeHistoryManager
-
+// MARK: - View Model
+@MainActor
+final class GenerateQRViewModel: ObservableObject {
+    @Published var inputText = ""
+    @Published var generatedQRCode: UIImage?
+    @Published var selectedLogo: UIImage?
+    @Published var qrCodeColor = Color.black
+    @Published var backgroundColor = Color.white
+    @Published var showError = false
+    @Published var errorMessage = ""
+    @Published var logoSize: CGFloat = 0.2
+    @Published var logoCornerRadius: CGFloat = 0.0
+    @Published var qrCodeStyle = QRCodeStyle.square
+    @Published var showingSavedAlert = false
+    @Published var selectedType: QRCodeDataType = .text
+    
     private let context = CIContext()
     private let filter = CIFilter.qrCodeGenerator()
+    private let historyManager: QRCodeHistoryManager
+    
+    init(historyManager: QRCodeHistoryManager) {
+        self.historyManager = historyManager
+    }
     
     enum QRCodeStyle: String, CaseIterable {
         case square = "方形"
@@ -30,193 +32,35 @@ struct GenerateQRView: View {
         case round = "圆角"
     }
     
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack {
-                    typePickerSection
-                    inputSection
-                    qrCodeDisplaySection
-                    styleSettingsSection
-                    historyButton
-                }
-            }
-            .navigationTitle("生成二维码")
+    func generateQRCode() {
+        guard !inputText.isEmpty else {
+            showError = true
+            errorMessage = "请输入内容"
+            return
         }
-        .sheet(isPresented: $showingImagePicker) {
-            ImagePicker(image: $selectedLogo, isPresented: $showingImagePicker)
-        }
-        .alert("错误", isPresented: $showError) {
-            Button("确定", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-        .alert("已保存", isPresented: $showingSavedAlert) {
-            Button("确定", role: .cancel) {}
-        } message: {
-            Text("二维码已保存到相册")
-        }
-        .sheet(isPresented: $showingHistory) {
-            QRCodeHistoryView()
-        }
-        .sheet(isPresented: $showingShareSheet) {
-            if let image = generatedQRCode {
-                ShareSheet(
-                    items: [image],
-                    excludedActivityTypes: [
-                        .assignToContact,
-                        .addToReadingList
-                    ],
-                    callback: { activity, completed, items, error in
-                        if completed {
-                            // 可以在这里添加分享成功后的操作
-                        }
-                    }
-                )
-            }
-        }
-    }
-    
-    private var typePickerSection: some View {
-        Picker("二维码类型", selection: $selectedType) {
-            ForEach(QRCodeDataType.allCases) { type in
-                Label(type.rawValue, systemImage: type.systemImage)
-                    .tag(type)
-            }
-        }
-        .pickerStyle(MenuPickerStyle())
-        .padding()
-        .onChange(of: selectedType) { _, _ in
-            generateQRCode()
-        }
-    }
-    
-    private var inputSection: some View {
-        QRCodeInputView(type: selectedType, qrContent: $inputText)
-            .padding()
-            .onChange(of: inputText) { newValue, _ in
-                if !newValue.isEmpty {
-                    generateQRCode()
-                }
-            }
-    }
-    
-    private var qrCodeDisplaySection: some View {
-        Group {
-            if generatedQRCode != nil {
-                Image(uiImage: generatedQRCode!)
-                    .interpolation(.none)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 200, height: 200)
-                    .contextMenu {
-                        Button(action: saveToPhotos) {
-                            Label("保存到相册", systemImage: "square.and.arrow.down")
-                        }
-                        Button(action: shareQRCode) {
-                            Label("分享", systemImage: "square.and.arrow.up")
-                        }
-                    }
-            }
-        }
-    }
-    
-    private var styleSettingsSection: some View {
-        VStack(spacing: 20) {
-            qrCodeStylePicker
-            colorPickers
-            logoSettings
-        }
-        .padding()
-    }
-    
-    private var qrCodeStylePicker: some View {
-        Picker("二维码样式", selection: $qrCodeStyle) {
-            ForEach(QRCodeStyle.allCases, id: \.self) { style in
-                Text(style.rawValue).tag(style)
-            }
-        }
-        .pickerStyle(SegmentedPickerStyle())
-        .onChange(of: qrCodeStyle) { oldValue, newValue in
-            generateQRCode()
-        }
-    }
-    
-    private var colorPickers: some View {
-        VStack {
-            ColorPicker("二维码颜色", selection: $qrCodeColor)
-                .onChange(of: qrCodeColor) { oldValue, newValue in
-                    generateQRCode()
-                }
-            ColorPicker("背景颜色", selection: $backgroundColor)
-                .onChange(of: backgroundColor) { oldValue, newValue in
-                    generateQRCode()
-                }
-        }
-    }
-    
-    private var logoSettings: some View {
-        VStack(alignment: .leading) {
-            Button(action: { showingImagePicker = true }) {
-                Label(selectedLogo == nil ? "添加Logo" : "更换Logo", systemImage: "photo")
-                    .foregroundColor(.blue)
-            }
-            
-            if selectedLogo != nil {
-                logoSliders
-            }
-        }
-        .onChange(of: selectedLogo) { oldValue, newValue in
-            generateQRCode()
-        }
-    }
-    
-    private var logoSliders: some View {
-        VStack {
-            Slider(value: $logoSize, in: 0.1...0.3) {
-                Text("Logo 大小: \(Int(logoSize * 100))%")
-            }
-            .onChange(of: logoSize) { oldValue, newValue in
-                generateQRCode()
-            }
-            
-            Slider(value: $logoCornerRadius, in: 0...20) {
-                Text("Logo 圆角: \(Int(logoCornerRadius))px")
-            }
-            .onChange(of: logoCornerRadius) { oldValue, newValue in
-                generateQRCode()
-            }
-        }
-    }
-    
-    private var historyButton: some View {
-        Button(action: { showingHistory = true }) {
-            Image(systemName: "clock")
-        }
-        .padding()
-    }
-    
-    private func generateQRCode() {
-        guard !inputText.isEmpty else { return }
         
-        // 设置二维码内容
-        let data = inputText.data(using: .utf8)
+        guard let data = inputText.data(using: .utf8) else {
+            showError = true
+            errorMessage = "无法生成二维码"
+            return
+        }
+        
         filter.setValue(data, forKey: "inputMessage")
         filter.setValue("M", forKey: "inputCorrectionLevel")
         
-        // 获取输出图像
-        guard let qrCodeImage = filter.outputImage else {
-            showErrorMessage("生成二维码失败")
+        guard let outputImage = filter.outputImage else {
+            showError = true
+            errorMessage = "生成二维码失败"
             return
         }
         
         // 应用样式
-        var styledQRCode = qrCodeImage
+        var styledQRCode = outputImage
         switch qrCodeStyle {
         case .dot:
-            styledQRCode = applyDotStyle(to: qrCodeImage)
+            styledQRCode = applyDotStyle(to: outputImage)
         case .round:
-            styledQRCode = applyRoundStyle(to: qrCodeImage)
+            styledQRCode = applyRoundStyle(to: outputImage)
         default:
             break
         }
@@ -224,7 +68,8 @@ struct GenerateQRView: View {
         let coloredQR = applyColors(to: styledQRCode)
         
         guard let cgImage = context.createCGImage(coloredQR, from: coloredQR.extent) else {
-            showErrorMessage("处理二维码图像失败")
+            showError = true
+            errorMessage = "处理二维码图像失败"
             return
         }
         
@@ -235,26 +80,16 @@ struct GenerateQRView: View {
         }
         
         generatedQRCode = finalImage
-        
-        // 保存到历史记录
         saveToHistory()
-    }
-    
-    private func saveToHistory() {
-        let historyItem = QRCodeHistoryItem(type: selectedType, content: inputText)
-        historyManager.addItem(historyItem)
     }
     
     private func applyDotStyle(to qrCode: CIImage) -> CIImage {
         let extent = qrCode.extent
         
-        // 创建一个 CGImage
-        let ciContext = CIContext()
-        guard let cgImage = ciContext.createCGImage(qrCode, from: extent) else {
+        guard let cgImage = context.createCGImage(qrCode, from: extent) else {
             return qrCode
         }
         
-        // 创建一个位图上下文
         let scale = UIScreen.main.scale
         let size = CGSize(width: extent.width * scale, height: extent.height * scale)
         UIGraphicsBeginImageContextWithOptions(size, false, 0)
@@ -264,62 +99,46 @@ struct GenerateQRView: View {
             return qrCode
         }
         
-        // 设置背景为白色
         context.setFillColor(UIColor.white.cgColor)
         context.fill(CGRect(origin: .zero, size: size))
         
-        // 获取二维码像素数据
         let width = cgImage.width
         let height = cgImage.height
-        
-        // 计算每个点的大小
         let dotSize = CGSize(width: size.width / CGFloat(width), height: size.height / CGFloat(height))
         
-        // 遍历二维码像素
-        for y in 0..<height {
-            for x in 0..<width {
-                // 获取像素颜色
-                let pixelData = cgImage.dataProvider?.data
-                let data: UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
-                let pixelInfo = ((width * y) + x) * 4
-                
-                let r = CGFloat(data[pixelInfo]) / 255.0
-                let g = CGFloat(data[pixelInfo + 1]) / 255.0
-                let b = CGFloat(data[pixelInfo + 2]) / 255.0
-                
-                // 如果是黑色像素，绘制一个圆点
-                if r < 0.5 && g < 0.5 && b < 0.5 {
-                    let pointX = CGFloat(x) * dotSize.width
-                    let pointY = CGFloat(y) * dotSize.height
-                    let dotRect = CGRect(x: pointX, y: pointY, width: dotSize.width, height: dotSize.height)
+        if let pixelData = cgImage.dataProvider?.data {
+            let data: UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
+            
+            for y in 0..<height {
+                for x in 0..<width {
+                    let pixelInfo = ((width * y) + x) * 4
+                    let r = CGFloat(data[pixelInfo]) / 255.0
                     
-                    // 绘制圆点
-                    context.setFillColor(UIColor.black.cgColor)
-                    context.fillEllipse(in: dotRect.insetBy(dx: dotSize.width * 0.1, dy: dotSize.height * 0.1))
+                    if r < 0.5 {
+                        let pointX = CGFloat(x) * dotSize.width
+                        let pointY = CGFloat(y) * dotSize.height
+                        let dotRect = CGRect(x: pointX, y: pointY, width: dotSize.width, height: dotSize.height)
+                        context.setFillColor(UIColor.black.cgColor)
+                        context.fillEllipse(in: dotRect.insetBy(dx: dotSize.width * 0.1, dy: dotSize.height * 0.1))
+                    }
                 }
             }
         }
         
-        // 获取结果图像
         guard let resultImage = UIGraphicsGetImageFromCurrentImageContext() else {
             return qrCode
         }
         
-        // 转换回 CIImage
-        let resultCIImage = CIImage(image: resultImage) ?? qrCode
-        return resultCIImage
+        return CIImage(image: resultImage) ?? qrCode
     }
     
     private func applyRoundStyle(to qrCode: CIImage) -> CIImage {
         let extent = qrCode.extent
         
-        // 创建一个 CGImage
-        let ciContext = CIContext()
-        guard let cgImage = ciContext.createCGImage(qrCode, from: extent) else {
+        guard let cgImage = context.createCGImage(qrCode, from: extent) else {
             return qrCode
         }
         
-        // 创建一个位图上下文
         let scale = UIScreen.main.scale
         let size = CGSize(width: extent.width * scale, height: extent.height * scale)
         UIGraphicsBeginImageContextWithOptions(size, false, 0)
@@ -329,52 +148,39 @@ struct GenerateQRView: View {
             return qrCode
         }
         
-        // 设置背景为白色
         context.setFillColor(UIColor.white.cgColor)
         context.fill(CGRect(origin: .zero, size: size))
         
-        // 获取二维码像素数据
         let width = cgImage.width
         let height = cgImage.height
-        
-        // 计算每个点的大小
         let dotSize = CGSize(width: size.width / CGFloat(width), height: size.height / CGFloat(height))
         
-        // 遍历二维码像素
-        for y in 0..<height {
-            for x in 0..<width {
-                // 获取像素颜色
-                let pixelData = cgImage.dataProvider?.data
-                let data: UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
-                let pixelInfo = ((width * y) + x) * 4
-                
-                let r = CGFloat(data[pixelInfo]) / 255.0
-                let g = CGFloat(data[pixelInfo + 1]) / 255.0
-                let b = CGFloat(data[pixelInfo + 2]) / 255.0
-                
-                // 如果是黑色像素，绘制一个圆角矩形
-                if r < 0.5 && g < 0.5 && b < 0.5 {
-                    let pointX = CGFloat(x) * dotSize.width
-                    let pointY = CGFloat(y) * dotSize.height
-                    let dotRect = CGRect(x: pointX, y: pointY, width: dotSize.width, height: dotSize.height)
+        if let pixelData = cgImage.dataProvider?.data {
+            let data: UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
+            
+            for y in 0..<height {
+                for x in 0..<width {
+                    let pixelInfo = ((width * y) + x) * 4
+                    let r = CGFloat(data[pixelInfo]) / 255.0
                     
-                    // 绘制圆角矩形
-                    let path = UIBezierPath(roundedRect: dotRect.insetBy(dx: dotSize.width * 0.05, dy: dotSize.height * 0.05), 
-                                           cornerRadius: dotSize.width * 0.3)
-                    context.setFillColor(UIColor.black.cgColor)
-                    path.fill()
+                    if r < 0.5 {
+                        let pointX = CGFloat(x) * dotSize.width
+                        let pointY = CGFloat(y) * dotSize.height
+                        let dotRect = CGRect(x: pointX, y: pointY, width: dotSize.width, height: dotSize.height)
+                        let path = UIBezierPath(roundedRect: dotRect.insetBy(dx: dotSize.width * 0.05, dy: dotSize.height * 0.05),
+                                              cornerRadius: dotSize.width * 0.3)
+                        context.setFillColor(UIColor.black.cgColor)
+                        path.fill()
+                    }
                 }
             }
         }
         
-        // 获取结果图像
         guard let resultImage = UIGraphicsGetImageFromCurrentImageContext() else {
             return qrCode
         }
         
-        // 转换回 CIImage
-        let resultCIImage = CIImage(image: resultImage) ?? qrCode
-        return resultCIImage
+        return CIImage(image: resultImage) ?? qrCode
     }
     
     private func applyColors(to qrCode: CIImage) -> CIImage {
@@ -384,18 +190,23 @@ struct GenerateQRView: View {
         ]
         
         let coloredQR = qrCode.applyingFilter("CIFalseColor", parameters: parameters)
-        
         let extent = coloredQR.extent
         let transform = CGAffineTransform(scaleX: 200.0/extent.width, y: 200.0/extent.height)
         return coloredQR.transformed(by: transform)
     }
     
-    private func saveToPhotos() {
+    func saveToHistory() {
+        let historyItem = QRCodeHistoryItem(type: selectedType, content: inputText)
+        historyManager.addItem(historyItem)
+    }
+    
+    func saveToPhotos() {
         guard generatedQRCode != nil else { return }
         
         PHPhotoLibrary.requestAuthorization { status in
             guard status == .authorized else {
-                showErrorMessage("需要相册访问权限")
+                self.showError = true
+                self.errorMessage = "需要相册访问权限"
                 return
             }
             
@@ -403,30 +214,178 @@ struct GenerateQRView: View {
                 PHAssetChangeRequest.creationRequestForAsset(from: self.generatedQRCode!)
             }) { success, error in
                 if success {
-                    showingSavedAlert = true
+                    self.showingSavedAlert = true
                 } else {
-                    showErrorMessage("保存失败：\(error?.localizedDescription ?? "未知错误")")
+                    self.showError = true
+                    self.errorMessage = "保存失败：\(error?.localizedDescription ?? "未知错误")"
                 }
             }
         }
     }
+}
+
+// MARK: - Main View
+struct GenerateQRView: View {
+    @StateObject private var viewModel: GenerateQRViewModel
+    @State private var showingImagePicker = false
+    @State private var showingShareSheet = false
+    @FocusState private var isInputFocused: Bool
     
-    private func shareQRCode() {
-        if generatedQRCode != nil {
-            showingShareSheet = true
-        } else {
-            showErrorMessage("请先生成二维码")
-        }
+    init(historyManager: QRCodeHistoryManager) {
+        _viewModel = StateObject(wrappedValue: GenerateQRViewModel(historyManager: historyManager))
     }
     
-    private func showErrorMessage(_ message: String) {
-        errorMessage = message
-        showError = true
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        isInputFocused = false
+                    }
+                
+                Form {
+                    // QR Code Type Section
+                    Section {
+                        Picker("类型", selection: $viewModel.selectedType) {
+                            ForEach(QRCodeDataType.allCases, id: \.self) { type in
+                                Label(type.description, systemImage: type.systemImage)
+                                    .tag(type)
+                            }
+                        }
+                        .pickerStyle(.navigationLink)
+                    }
+                    
+                    // Input Section
+                    Section {
+                        TextField("输入内容", text: $viewModel.inputText)
+                            .textFieldStyle(.roundedBorder)
+                            .focused($isInputFocused)
+                            .submitLabel(.done)
+                            .onSubmit {
+                                isInputFocused = false
+                            }
+                        
+                        Button(action: {
+                            isInputFocused = false
+                            viewModel.generateQRCode()
+                        }) {
+                            HStack(spacing: 8) {
+                                Spacer()
+                                Image(systemName: "qrcode.viewfinder")
+                                Text("生成二维码")
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.pastelPink)
+                        .frame(maxWidth: .infinity)
+                    }
+                    
+                    // Style Section
+                    Section("样式") {
+                        ColorPicker("二维码颜色", selection: $viewModel.qrCodeColor)
+                        ColorPicker("背景颜色", selection: $viewModel.backgroundColor)
+                        
+                        Picker("样式", selection: $viewModel.qrCodeStyle) {
+                            ForEach(GenerateQRViewModel.QRCodeStyle.allCases, id: \.self) { style in
+                                Text(style.rawValue).tag(style)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    
+                    // Logo Section
+                    if let qrCode = viewModel.generatedQRCode {
+                        Section("Logo") {
+                            HStack {
+                                if let logo = viewModel.selectedLogo {
+                                    Image(uiImage: logo)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 44)
+                                }
+                                
+                                Button(action: { showingImagePicker = true }) {
+                                    Label(viewModel.selectedLogo == nil ? "添加 Logo" : "更换 Logo",
+                                          systemImage: "photo")
+                                }
+                            }
+                            
+                            if viewModel.selectedLogo != nil {
+                                Slider(value: $viewModel.logoSize, in: 0.1...0.3, step: 0.05) {
+                                    Text("Logo 大小")
+                                }
+                                Slider(value: $viewModel.logoCornerRadius, in: 0...20, step: 2) {
+                                    Text("Logo 圆角")
+                                }
+                            }
+                        }
+                        
+                        // Preview Section
+                        Section {
+                            Image(uiImage: qrCode)
+                                .interpolation(.none)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color(uiColor: .systemBackground))
+                                .cornerRadius(12)
+                            
+                            HStack {
+                                Button(action: { showingShareSheet = true }) {
+                                    Label("分享", systemImage: "square.and.arrow.up")
+                                }
+                                .buttonStyle(.bordered)
+                                
+                                Button(action: viewModel.saveToPhotos) {
+                                    Label("保存到相册", systemImage: "square.and.arrow.down")
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("生成二维码")
+            .alert("错误", isPresented: $viewModel.showError) {
+                Button("确定", role: .cancel) {}
+            } message: {
+                Text(viewModel.errorMessage)
+            }
+            .alert("已保存", isPresented: $viewModel.showingSavedAlert) {
+                Button("确定", role: .cancel) {}
+            } message: {
+                Text("二维码已保存到相册")
+            }
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePicker(image: $viewModel.selectedLogo, isPresented: $showingImagePicker)
+            }
+            .sheet(isPresented: $showingShareSheet) {
+                if let qrCode = viewModel.generatedQRCode {
+                    ShareSheet(activityItems: [qrCode])
+                }
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("完成") {
+                        isInputFocused = false
+                    }
+                }
+            }
+        }
     }
 }
 
 struct GenerateQRView_Previews: PreviewProvider {
     static var previews: some View {
-        GenerateQRView()
+        GenerateQRView(historyManager: QRCodeHistoryManager())
     }
 }

@@ -129,6 +129,27 @@ struct EmailInputView: View {
     }
 }
 
+// MARK: - Location Input View
+struct LocationInputView: View {
+    @Binding var location: QRCodeDataType.Location
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TextField("名称", text: $location.name)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .textContentType(.location)
+            
+            TextField("纬度", value: $location.latitude, format: .number)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .keyboardType(.decimalPad)
+            
+            TextField("经度", value: $location.longitude, format: .number)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .keyboardType(.decimalPad)
+        }
+    }
+}
+
 // MARK: - Calendar Input View
 struct CalendarInputView: View {
     @Binding var calendar: QRCodeDataType.Calendar
@@ -163,22 +184,14 @@ struct QRCodeInputViews_Previews: PreviewProvider {
             URLInputView(url: .constant("https://example.com"))
                 .previewDisplayName("URL Input")
             
-            ContactInputView(contact: .constant(QRCodeDataType.Contact(
-                firstName: "John",
-                lastName: "Doe",
-                phone: "123456789",
-                email: "john@example.com",
-                organization: "Example Corp"
-            )))
-            .previewDisplayName("Contact Input")
+            ContactInputView(contact: .constant(QRCodeDataType.Contact()))
+                .previewDisplayName("Contact Input")
             
-            WiFiInputView(wifi: .constant(QRCodeDataType.WiFi(
-                ssid: "MyWiFi",
-                password: "password123",
-                security: .wpa,
-                isHidden: false
-            )))
-            .previewDisplayName("WiFi Input")
+            WiFiInputView(wifi: .constant(QRCodeDataType.WiFi()))
+                .previewDisplayName("WiFi Input")
+            
+            LocationInputView(location: .constant(QRCodeDataType.Location()))
+                .previewDisplayName("Location Input")
         }
         .padding()
         .previewLayout(.sizeThatFits)

@@ -6,12 +6,13 @@ struct QRCodeInputView: View {
     
     // 状态变量
     @State private var urlInput = ""
-    @State private var contact = QRCodeDataType.Contact(firstName: "", lastName: "", phone: "", email: "", organization: "")
-    @State private var wifi = QRCodeDataType.WiFi(ssid: "", password: "", security: .wpa, isHidden: false)
-    @State private var sms = QRCodeDataType.SMS(phone: "", message: "")
-    @State private var phone = QRCodeDataType.Phone(number: "")
-    @State private var email = QRCodeDataType.Email(address: "", subject: "", body: "")
-    @State private var calendar = QRCodeDataType.Calendar(title: "", startDate: Date(), endDate: Date(), description: "", location: "")
+    @State private var contact = QRCodeDataType.Contact()
+    @State private var wifi = QRCodeDataType.WiFi()
+    @State private var sms = QRCodeDataType.SMS()
+    @State private var phone = QRCodeDataType.Phone()
+    @State private var email = QRCodeDataType.Email()
+    @State private var calendar = QRCodeDataType.Calendar()
+    @State private var location = QRCodeDataType.Location()
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -40,7 +41,7 @@ struct QRCodeInputView: View {
             case .url:
                 URLInputView(url: $urlInput)
                     .onChange(of: urlInput) { _, newValue in
-                        qrContent = newValue
+                        qrContent = type.formatContent(newValue)
                     }
             case .contact:
                 ContactInputView(contact: $contact)
@@ -73,45 +74,60 @@ struct QRCodeInputView: View {
                         qrContent = newValue.eventString
                     }
             case .location:
-                TextField("请输入位置内容", text: $qrContent)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.default)
-                    .textContentType(.none)
-                    .textInputAutocapitalization(.sentences)
+                LocationInputView(location: $location)
+                    .onChange(of: location) { _, newValue in
+                        qrContent = newValue.geoString
+                    }
             }
         }
     }
     
     private func initializeContent() {
+        // 这里采用直接的赋值而不是使用外部解析器，遵循Context7架构
         switch type {
         case .text:
             break // 文本类型直接使用 qrContent
         case .url:
-            urlInput = qrContent
+            urlInput = qrContent.replacingOccurrences(of: "https://", with: "").replacingOccurrences(of: "http://", with: "")
         case .contact:
-            if let parsedContact = QRCodeStringParser.parseVCard(qrContent) {
-                contact = parsedContact
-            }
+            // vCard格式简单处理，实际项目中可能需要更复杂的解析
+            let vCardString = qrContent
+            contact.firstName = vCardString.contains("FN:") ? String(vCardString.split(separator: "FN:")[1].split(separator: "\n")[0]) : ""
         case .wifi:
-            if let parsedWiFi = QRCodeStringParser.parseWiFi(qrContent) {
-                wifi = parsedWiFi
+            // WiFi格式简单处理
+            let wifiString = qrContent
+            if wifiString.contains("S:") && wifiString.contains(";") {
+                let ssidRange = wifiString.range(of: "S:")?.upperBound
+                if let ssidRange = ssidRange,
+                   let endRange = wifiString[ssidRange...].firstIndex(where: { $0 == ";" }) {
+                    wifi.ssid = String(wifiString[ssidRange..<endRange])
+                }
             }
         case .sms:
-            if let parsedSMS = QRCodeStringParser.parseSMS(qrContent) {
-                sms = parsedSMS
-            }
+            // SMS格式简单处理
+            let smsString = qrContent.replacingOccurrences(of: "sms:", with: "").replacingOccurrences(of: "SMSTO:", with: "")
+            sms.phone = smsString
         case .phone:
-            phone = QRCodeDataType.Phone(number: qrContent.replacingOccurrences(of: "tel:", with: ""))
+            phone.number = qrContent.replacingOccurrences(of: "tel:", with: "")
         case .email:
-            if let parsedEmail = QRCodeStringParser.parseEmail(qrContent) {
-                email = parsedEmail
-            }
+            // Email格式简单处理
+            let emailString = qrContent.replacingOccurrences(of: "mailto:", with: "")
+            email.address = emailString.split(separator: "?").first.map(String.init) ?? emailString
         case .calendar:
-            if let parsedCalendar = QRCodeStringParser.parseCalendar(qrContent) {
-                calendar = parsedCalendar
+            // 日历格式简单处理
+            if qrContent.contains("SUMMARY:") {
+                calendar.title = qrContent.components(separatedBy: "SUMMARY:")[1].components(separatedBy: "\n")[0]
             }
         case .location:
-            break // 位置类型直接使用 qrContent
+            // 位置格式简单处理
+            let locationString = qrContent.replacingOccurrences(of: "geo:", with: "")
+            let parts = locationString.split(separator: ",")
+            if parts.count >= 2, 
+               let lat = Double(parts[0]), 
+               let lon = Double(parts[1]) {
+                location.latitude = lat
+                location.longitude = lon
+            }
         }
     }
 }

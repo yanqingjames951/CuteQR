@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct QRCodeSharePreview: View {
     let qrCodeImage: UIImage
@@ -50,33 +51,17 @@ struct QRCodeSharePreview: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Label(type.rawValue, systemImage: type.systemImage)
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(4)
-                    
-                    Spacer()
-                    
-                    Text(Date().formatted(date: .abbreviated, time: .shortened))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Image(systemName: type.systemImage)
+                        .foregroundColor(.pastelPink)
+                    Text(title)
+                        .font(.headline)
                 }
                 
-                Text(title)
-                    .font(.headline)
-                    .lineLimit(1)
-                
                 Text(content)
-                    .font(.body)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(3)
             }
-            .padding()
-            .background(Color(UIColor.secondarySystemBackground))
-            .cornerRadius(12)
-            .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
             .padding(.horizontal)
             
             Spacer()
@@ -87,88 +72,84 @@ struct QRCodeSharePreview: View {
                     withAnimation {
                         showCopiedFeedback = true
                     }
-                    // 2秒后自动隐藏反馈
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         withAnimation {
                             showCopiedFeedback = false
                         }
                     }
                 }) {
                     VStack {
-                        ZStack {
-                            Circle()
-                                .fill(Color.blue.opacity(0.1))
-                                .frame(width: 50, height: 50)
-                            
-                            Image(systemName: showCopiedFeedback ? "checkmark" : "doc.on.doc")
-                                .font(.system(size: 20))
-                                .foregroundColor(.blue)
-                        }
-                        
-                        Text(showCopiedFeedback ? "已复制" : "复制")
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: 24))
+                        Text("复制")
                             .font(.caption)
-                            .foregroundColor(.primary)
                     }
+                    .frame(width: 60, height: 60)
                 }
-                
-                Button(action: {
-                    showingShareSheet = true
-                }) {
-                    VStack {
-                        ZStack {
-                            Circle()
-                                .fill(Color.green.opacity(0.1))
-                                .frame(width: 50, height: 50)
-                            
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 20))
-                                .foregroundColor(.green)
-                        }
-                        
-                        Text("分享")
-                            .font(.caption)
-                            .foregroundColor(.primary)
-                    }
-                }
+                .foregroundColor(.pastelPink)
                 
                 Button(action: {
                     UIImageWriteToSavedPhotosAlbum(qrCodeImage, nil, nil, nil)
                     withAnimation {
                         showSavedFeedback = true
                     }
-                    // 2秒后自动隐藏反馈
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         withAnimation {
                             showSavedFeedback = false
                         }
                     }
                 }) {
                     VStack {
-                        ZStack {
-                            Circle()
-                                .fill(Color.purple.opacity(0.1))
-                                .frame(width: 50, height: 50)
-                            
-                            Image(systemName: showSavedFeedback ? "checkmark" : "photo")
-                                .font(.system(size: 20))
-                                .foregroundColor(.purple)
-                        }
-                        
-                        Text(showSavedFeedback ? "已保存" : "保存")
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 24))
+                        Text("保存")
                             .font(.caption)
-                            .foregroundColor(.primary)
                     }
+                    .frame(width: 60, height: 60)
                 }
+                .foregroundColor(.pastelPink)
+                
+                Button(action: {
+                    showingShareSheet = true
+                }) {
+                    VStack {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 24))
+                        Text("分享")
+                            .font(.caption)
+                    }
+                    .frame(width: 60, height: 60)
+                }
+                .foregroundColor(.pastelPink)
             }
             .padding(.bottom, 30)
         }
         .sheet(isPresented: $showingShareSheet) {
-            ShareSheet(
-                items: [qrCodeImage, content],
-                excludedActivityTypes: [.assignToContact, .addToReadingList],
-                callback: nil
-            )
+            ShareSheet(activityItems: [qrCodeImage, content])
         }
+        .overlay(
+            ZStack {
+                if showCopiedFeedback {
+                    feedbackToast(message: "已复制到剪贴板")
+                }
+                if showSavedFeedback {
+                    feedbackToast(message: "已保存到相册")
+                }
+            }
+        )
+    }
+    
+    private func feedbackToast(message: String) -> some View {
+        Text(message)
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.pastelPink.opacity(0.8))
+            )
+            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 }
 
